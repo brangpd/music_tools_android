@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">音乐工具</string>
+    <string name="metronome_play">播放</string>
+    <string name="metronome_record">记录</string>
+    <string name="menu_home">主页</string>
+    <string name="menu_metronome">节拍器</string>
+    <string name="metronome_stop">停止</string>
+</resources>
