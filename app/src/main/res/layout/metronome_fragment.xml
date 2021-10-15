@@ -37,5 +37,11 @@
             android:layout_height="wrap_content"
             android:text="@string/metronome_record" />
 
+        <Button
+            android:id="@+id/buttonResetRecord"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/metronome_reset_record" />
+
     </LinearLayout>
 </FrameLayout>

@@ -10,7 +10,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,9 +17,8 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.SeekBar;
-import android.widget.TextView;
 
-import java.util.Objects;
+import java.util.Calendar;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -32,12 +30,13 @@ public class MetronomeFragment extends Fragment {
 
     private MetronomeViewModel mViewModel;
     private static final int kMinBpm = 20;
+    private static final long kMaxRecordStopMs = bpmToMspb(kMinBpm);
     private static final int kMaxBpm = 300;
     private static final int kInitBpm = 60;
-    private MediaPlayer mHighSoundPlayer;
-    private MediaPlayer mLowSoundPlayer;
-    private boolean mIsPlaying = false;
     private Timer mPlayingTimer = null;
+    private long mLastRecordedTimeMs;
+    private long mLastRecordedStopMs;
+    private long mRecordCount;
 
     public static MetronomeFragment newInstance() {
         return new MetronomeFragment();
@@ -52,13 +51,22 @@ public class MetronomeFragment extends Fragment {
         SeekBar seekBarBpm = binding.seekBarBpm;
         Button buttonPlay = binding.buttonPlay;
         Button buttonRecord = binding.buttonRecord;
+        Button buttonResetRecord = binding.buttonResetRecord;
 
-        mHighSoundPlayer = MediaPlayer.create(getActivity(), R.raw.metronome_high);
-        mLowSoundPlayer = MediaPlayer.create(getActivity(), R.raw.metronome_low);
         mViewModel = new ViewModelProvider(this).get(MetronomeViewModel.class);
         mViewModel.getBpm().observe(getViewLifecycleOwner(), integer -> {
             String bpmStr = integer.toString();
             editTextNumberBpm.setText(bpmStr);
+            if (mPlayingTimer != null) {
+                mPlayingTimer.cancel();
+                mPlayingTimer = new Timer();
+            }
+            schedulePlayTimer(getContext(), mPlayingTimer, integer);
+        });
+        mViewModel.isPlaying().observe(getViewLifecycleOwner(), isPlaying -> {
+            boolean recordOptionEnabled = !isPlaying;
+            buttonRecord.setEnabled(recordOptionEnabled);
+            buttonResetRecord.setEnabled(recordOptionEnabled);
         });
         editTextNumberBpm.setText(String.valueOf(kInitBpm));
 
@@ -68,41 +76,38 @@ public class MetronomeFragment extends Fragment {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                 int bpm = seekBarProgressToBpm(i);
-                mViewModel.setBpm(bpm);
-                if (mPlayingTimer != null) {
-                    mPlayingTimer.cancel();
-                    mPlayingTimer = new Timer();
-                }
-                schedulePlayTimer(mPlayingTimer, bpm);
+                editTextNumberBpm.setText(String.valueOf(bpm));
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-
+                int i = seekBar.getProgress();
+                int bpm = seekBarProgressToBpm(i);
+                mViewModel.setBpm(bpm);
             }
         });
 
         buttonPlay.setOnClickListener(view -> {
-            if (!mIsPlaying) {
+            Boolean isPlaying = mViewModel.isPlaying().getValue();
+            if (isPlaying == null || !isPlaying) {
                 buttonPlay.setText(R.string.metronome_stop);
-                mIsPlaying = true;
+                mViewModel.setPlaying(true);
                 if (mPlayingTimer != null) {
                     mPlayingTimer.cancel();
                     mPlayingTimer = null;
                 }
-                int bpm = mViewModel.getBpm().getValue();
-                if (bpm != 0) {
+                Integer bpm = mViewModel.getBpm().getValue();
+                if (bpm != null && bpm != 0) {
                     mPlayingTimer = new Timer();
-                    schedulePlayTimer(mPlayingTimer, bpm);
+                    schedulePlayTimer(getContext(), mPlayingTimer, bpm);
                 }
             } else {
                 buttonPlay.setText(R.string.metronome_play);
-                mIsPlaying = false;
+                mViewModel.setPlaying(false);
                 if (mPlayingTimer != null) {
                     mPlayingTimer.cancel();
                     mPlayingTimer = null;
@@ -111,7 +116,25 @@ public class MetronomeFragment extends Fragment {
         });
 
         buttonRecord.setOnClickListener(view -> {
+            playSound(getContext());
+            long nowMs = Calendar.getInstance().getTime().getTime();
+            long stopMs = nowMs - mLastRecordedTimeMs;
+            mLastRecordedTimeMs = nowMs;
+            if (stopMs > kMaxRecordStopMs) {
+                mRecordCount = 0;
+                mLastRecordedStopMs = 0;
+                return;
+            }
+            ++mRecordCount;
+            mLastRecordedStopMs = mLastRecordedStopMs + (stopMs - mLastRecordedStopMs) / mRecordCount;
+            int bpm = mspbToBpm(mLastRecordedStopMs);
+            mViewModel.setBpm(bpm);
+        });
 
+        buttonResetRecord.setOnClickListener(view -> {
+            mRecordCount = 0;
+            mLastRecordedStopMs = 0;
+            mLastRecordedTimeMs = 0;
         });
 
         return binding.getRoot();
@@ -134,7 +157,14 @@ public class MetronomeFragment extends Fragment {
         return (long) (1 / bpms);
     }
 
-    private void schedulePlayTimer(Timer timer, int bpm) {
+    private static int mspbToBpm(long v) {
+        if (v == 0) {
+            return 0;
+        }
+        return (int) (60 * 1000 / (float) v);
+    }
+
+    private static void schedulePlayTimer(Context context, Timer timer, int bpm) {
         if (timer == null) {
             return;
         }
@@ -142,19 +172,21 @@ public class MetronomeFragment extends Fragment {
             return;
         }
         TimerTask timerTask = new TimerTask() {
-
             @Override
             public void run() {
-                Log.d(TAG, "run: Tick");
-                playSound();
+                String time = Calendar.getInstance().getTime().toString();
+                Log.d(TAG, String.format("run: Tick %s", time));
+                playSound(context);
             }
         };
         long mspb = bpmToMspb(bpm);
         Log.d(TAG, String.format("onCreateView: Start Playing at interval %d ms", mspb));
-        timer.scheduleAtFixedRate(timerTask, 0, mspb);
+        timer.schedule(timerTask, 0, mspb);
     }
 
-    private void playSound() {
-        mHighSoundPlayer.start();
+    private static void playSound(Context context) {
+        MediaPlayer player = MediaPlayer.create(context, R.raw.metronome_high);
+        player.start();
+        player.setOnCompletionListener(MediaPlayer::release);
     }
 }
