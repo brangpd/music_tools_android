@@ -12,6 +12,7 @@
     <string name="menu_gallery" translatable="false">Gallery</string>
     <string name="menu_slideshow" translatable="false">Slideshow</string>
     <string name="menu_metronome">Metronome</string>
+    <string name="metronome_bpm_text" translatable="false">BPM</string>
     <string name="metronome_play">Play</string>
     <string name="metronome_record">Record</string>
     <string name="metronome_reset_record">Reset Record</string>

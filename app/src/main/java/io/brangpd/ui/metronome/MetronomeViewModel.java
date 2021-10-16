@@ -32,10 +32,6 @@ public class MetronomeViewModel extends ViewModel {
         return isPlaying;
     }
 
-    public void setPlaying(boolean b) {
-        isPlaying.setValue(b);
-    }
-
     @NonNull
     public LiveData<Long> getLastRecordedTimeMs() {
         return lastRecordedTimeMs;
