@@ -20,5 +20,5 @@
     <string name="text_view_transposition_text">Trans:</string>
     <string name="button_midi_key_transposition_plus" translatable="false">+</string>
     <string name="button_midi_key_transposition_minus" translatable="false">-</string>
-    <string name="button_midi_key_transposition_zero">0</string>
+    <string name="button_midi_key_transposition_zero" translatable="false">0</string>
 </resources>
