@@ -227,7 +227,20 @@ public class MidiPianoFragment extends Fragment {
                             blackKeyWidth(mWhiteKeyWidth), blackKeyHeight(mWhiteKeyHeight));
                     params.topMargin = 0;
 
-                    params.leftMargin = leftMarginOffset + octave * 7 * mWhiteKeyWidth + i * blackKeyWidth(mWhiteKeyWidth) + 1;
+                    // 算当前黑键在当前八度内的位置：前2个黑键和前3个白键分5格，后3个黑键和后4个白键分7格
+                    if (midiCode == 22 /*A#0*/) {
+                        // 最左边一个黑键，为了美观居中，直接跟两个白键平分
+                        params.leftMargin = (int) Math.ceil(mWhiteKeyWidth * 2 / 3.0);
+                    } else {
+                        double localBlackLeftOffset;
+                        if (i <= 3) {
+                            localBlackLeftOffset = mWhiteKeyWidth * 3 * i / 5.0;
+                        } else {
+                            localBlackLeftOffset = mWhiteKeyWidth * 3 + mWhiteKeyWidth * 4 * (i - 5) / 7.0;
+                        }
+                        params.leftMargin = leftMarginOffset + octave * 7 * mWhiteKeyWidth + (int) Math.round(localBlackLeftOffset);
+                    }
+
                     Log.d(TAG, String.format("Black key %d left margin: %d", midiCode, params.leftMargin));
                     params.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
                     params.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
@@ -259,7 +272,8 @@ public class MidiPianoFragment extends Fragment {
     }
 
     private static int blackKeyWidth(int whiteKeyWidth) {
-        return whiteKeyWidth * 7 / 12;
+        // (3/7/5+4/7/7)/2 * 7 * whiteKeyWidth
+        return (int) Math.round(whiteKeyWidth * (0.3 + 2.0 / 7));
     }
 
     private static int blackKeyHeight(int whiteKeyHeight) {
