@@ -16,4 +16,9 @@
         android:name="io.brangpd.ui.metronome.MetronomeFragment"
         android:label="@string/menu_metronome"
         tools:layout="@layout/metronome_fragment" />
+    <fragment
+        android:id="@+id/nav_midi_keyboard"
+        android:name="io.brangpd.ui.midipiano.MidiPianoFragment"
+        android:label="@string/menu_midi_keyboard"
+        tools:layout="@layout/midi_piano_fragment" />
 </navigation>

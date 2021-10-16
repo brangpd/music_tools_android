@@ -8,6 +8,7 @@
     <string name="action_settings" translatable="false">Settings</string>
 
     <string name="menu_home">Home</string>
+    <string name="menu_midi_keyboard">Midi Keyboard</string>
     <string name="menu_gallery" translatable="false">Gallery</string>
     <string name="menu_slideshow" translatable="false">Slideshow</string>
     <string name="menu_metronome">Metronome</string>
@@ -15,4 +16,5 @@
     <string name="metronome_record">Record</string>
     <string name="metronome_reset_record">Reset Record</string>
     <string name="metronome_stop">Stop</string>
+    <string name="text_view_key_width_text">Key Width:</string>
 </resources>

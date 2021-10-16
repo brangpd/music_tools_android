@@ -11,5 +11,8 @@
         <item
             android:id="@+id/nav_metronome"
             android:title="@string/menu_metronome" />
+        <item
+            android:id="@+id/nav_midi_keyboard"
+            android:title="@string/menu_midi_keyboard" />
     </group>
 </menu>

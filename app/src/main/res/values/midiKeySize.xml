@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="midiKeySize">
+        <item>"100"</item>
+        <item>"150"</item>
+        <item>"200"</item>
+    </string-array>
+</resources>
