@@ -2,8 +2,8 @@
     <string name="app_name">MusicTools</string>
     <string name="navigation_drawer_open" translatable="false">Open navigation drawer</string>
     <string name="navigation_drawer_close" translatable="false">Close navigation drawer</string>
-    <string name="nav_header_title" translatable="false">Android Studio</string>
-    <string name="nav_header_subtitle" translatable="false">android.studio@android.com</string>
+    <string name="nav_header_title" translatable="false">花落无声</string>
+    <string name="nav_header_subtitle" translatable="false">brangpd@outlook.com</string>
     <string name="nav_header_desc" translatable="false">Navigation header</string>
     <string name="action_settings" translatable="false">Settings</string>
 
@@ -17,4 +17,8 @@
     <string name="metronome_reset_record">Reset Record</string>
     <string name="metronome_stop">Stop</string>
     <string name="text_view_key_width_text">Key Width:</string>
+    <string name="text_view_transposition_text">Trans:</string>
+    <string name="button_midi_key_transposition_plus" translatable="false">+</string>
+    <string name="button_midi_key_transposition_minus" translatable="false">-</string>
+    <string name="button_midi_key_transposition_zero">0</string>
 </resources>

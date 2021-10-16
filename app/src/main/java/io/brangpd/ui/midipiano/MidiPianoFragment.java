@@ -19,7 +19,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.HorizontalScrollView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Space;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -29,6 +30,8 @@ import com.google.android.material.button.MaterialButton;
 import org.billthefarmer.mididriver.MidiDriver;
 
 import java.util.Locale;
+import java.util.Objects;
+import java.util.Vector;
 
 import io.brangpd.R;
 import io.brangpd.databinding.MidiPianoFragmentBinding;
@@ -43,11 +46,9 @@ public class MidiPianoFragment extends Fragment {
     private Spinner mSpinnerMidiKeySize;
     private ConstraintLayout mConstraintLayoutMidiKeyboard;
     private MidiPianoFragmentBinding mBinding;
-    private HorizontalScrollView mScrollView;
-
-    public static MidiPianoFragment newInstance() {
-        return new MidiPianoFragment();
-    }
+    private Spinner mSpinnerMidiKeyTransposition;
+    private static final int kMinDelta = -11;
+    private static final int kMaxDelta = 11;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -67,11 +68,59 @@ public class MidiPianoFragment extends Fragment {
         mViewModel = new ViewModelProvider(this).get(MidiPianoViewModel.class);
         View view = inflater.inflate(R.layout.midi_piano_fragment, container, false);
         mBinding = MidiPianoFragmentBinding.bind(view);
-        mScrollView = mBinding.scrollViewMidiKeyboard;
         mConstraintLayoutMidiKeyboard = mBinding.constraintLayoutMidiKeyboard;
         mConstraintLayoutMidiKeyboard.requestDisallowInterceptTouchEvent(true);
         mTextViewMidiNote = mBinding.textViewMidiNote;
-        mSpinnerMidiKeySize = mBinding.spinnerMidiKeySize;
+        mSpinnerMidiKeySize = mBinding.layoutMidiPianoQuickSettings.spinnerMidiKeySize;
+        mSpinnerMidiKeyTransposition = mBinding.layoutMidiPianoQuickSettings.spinnerMidiKeyTransposition;
+        Button buttonMidiKeyTranspositionPlus = mBinding.layoutMidiPianoQuickSettings.buttonMidiKeyTranspositionPlus;
+        Button buttonMidiKeyTranspositionMinus = mBinding.layoutMidiPianoQuickSettings.buttonMidiKeyTranspositionMinus;
+        Button buttonMidiKeyTranspositionZero = mBinding.layoutMidiPianoQuickSettings.buttonMidiKeyTranspositionZero;
+
+        // 移调部分UI及行为
+        // 移调列表
+        ArrayAdapter<MidiKeyTransposition> adapter = new ArrayAdapter<>(
+                getContext(),
+                android.R.layout.simple_spinner_item,
+                new Vector<MidiKeyTransposition>() {{
+                    for (int i = kMinDelta; i <= kMaxDelta; ++i) {
+                        add(new MidiKeyTransposition(i));
+                    }
+                }});
+        mSpinnerMidiKeyTransposition.setAdapter(adapter);
+        mSpinnerMidiKeyTransposition.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                Object selectedItem = adapterView.getSelectedItem();
+                if (selectedItem instanceof MidiKeyTransposition) {
+                    int delta = ((MidiKeyTransposition) selectedItem).getDelta();
+                    mViewModel.setTransposition(delta);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+            }
+        });
+        buttonMidiKeyTranspositionPlus.setOnClickListener(view1 -> {
+            int cur = Objects.requireNonNull(mViewModel.getTransposition().getValue());
+            if (cur < kMaxDelta) {
+                mViewModel.setTransposition(cur + 1);
+            }
+        });
+        buttonMidiKeyTranspositionMinus.setOnClickListener(view1 -> {
+            int cur = Objects.requireNonNull(mViewModel.getTransposition().getValue());
+            if (cur > kMinDelta) {
+                mViewModel.setTransposition(cur - 1);
+            }
+        });
+        buttonMidiKeyTranspositionZero.setOnClickListener(view1 -> mViewModel.setTransposition(0));
+        mViewModel.getTransposition().observe(getViewLifecycleOwner(), integer -> {
+            int index = integer - kMinDelta;
+            mSpinnerMidiKeyTransposition.setSelection(index);
+        });
+        // 一开始列表会显示为第一个加入的项（-11），手动调用一次设置
+        mViewModel.setTransposition(Objects.requireNonNull(mViewModel.getTransposition().getValue()));
         mSpinnerMidiKeySize.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
@@ -87,6 +136,26 @@ public class MidiPianoFragment extends Fragment {
         buildKeys();
 
         return view;
+    }
+
+    private static class MidiKeyTransposition {
+        private final int kDelta;
+        private final String kString;
+
+        public MidiKeyTransposition(int kDelta) {
+            this.kDelta = kDelta;
+            kString = String.format(Locale.getDefault(), "%+d %s", kDelta, pitchNameString(60 + kDelta, false));
+        }
+
+        public int getDelta() {
+            return kDelta;
+        }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return kString;
+        }
     }
 
     private void buildKeys() {
@@ -105,8 +174,10 @@ public class MidiPianoFragment extends Fragment {
         OnMidiKeyboardListener onMidiKeyboardListener = new OnMidiKeyboardListener() {
             @Override
             public void onTouch(int midiCode, int velocity) {
+                int delta = Objects.requireNonNull(mViewModel.getTransposition().getValue());
+                midiCode += delta;
                 Log.d(TAG, String.format("onCreateView Touch: %d %d", midiCode, velocity));
-                mTextViewMidiNote.setText(midiString(midiCode));
+                mTextViewMidiNote.setText(pitchNameString(midiCode));
                 // Construct a note ON message for the middle C at maximum velocity on channel 1:
                 byte[] event = new byte[3];
                 event[0] = (byte) 0x90;  // 0x90 = note On, 0x00 = channel 1
@@ -119,6 +190,8 @@ public class MidiPianoFragment extends Fragment {
 
             @Override
             public void onRelease(int midiCode, int velocity) {
+                int delta = Objects.requireNonNull(mViewModel.getTransposition().getValue());
+                midiCode += delta;
                 Log.d(TAG, String.format("onCreateView Release: %d", midiCode));
                 // Construct a note OFF message for the middle C at minimum velocity on channel 1:
                 byte[] event = new byte[3];
@@ -214,14 +287,9 @@ public class MidiPianoFragment extends Fragment {
         return midiCode / 12 - 1;
     }
 
-    private static String midiString(int midiCode) {
-        if (isBlackKey(midiCode)) {
-            int leftWhite = midiCode - 1;
-            int rightWhite = midiCode + 1;
-            return String.format(Locale.getDefault(), "#%s / b%s", midiString(leftWhite), midiString(rightWhite));
-        }
-        char name; // CDEFGAB
-        switch (midiInOctave(midiCode)) {
+    private static char pitchNameChar(int midiInOctave) {
+        char name;
+        switch (midiInOctave) {
             case 0:
                 name = 'C';
                 break;
@@ -244,9 +312,29 @@ public class MidiPianoFragment extends Fragment {
                 name = 'B';
                 break;
             default:
-                return null;
+                name = 0;
+                break;
         }
-        return String.format(Locale.getDefault(), "%c%d", name, midiOfOctave(midiCode));
+        return name;
+    }
+
+    private static String pitchNameString(int midiCode) {
+        return pitchNameString(midiCode, true);
+    }
+
+    private static String pitchNameString(int midiCode, boolean shouldShowOctave) {
+        if (isBlackKey(midiCode)) {
+            int leftWhite = midiCode - 1;
+            int rightWhite = midiCode + 1;
+            return String.format(Locale.getDefault(), "#%s / b%s",
+                    pitchNameString(leftWhite, shouldShowOctave),
+                    pitchNameString(rightWhite, shouldShowOctave));
+        }
+        char name = pitchNameChar(midiInOctave(midiCode)); // CDEFGAB
+        if (shouldShowOctave) {
+            return String.format(Locale.getDefault(), "%c%d", name, midiOfOctave(midiCode));
+        }
+        return String.format(Locale.getDefault(), "%c", name);
     }
 
     private interface OnMidiKeyboardListener {
@@ -255,7 +343,7 @@ public class MidiPianoFragment extends Fragment {
         void onRelease(int midiCode, int velocity);
     }
 
-    private class MidiKeyboardButton extends MaterialButton {
+    private static class MidiKeyboardButton extends MaterialButton {
         private final int kMidiCode;
         private OnMidiKeyboardListener mListener = null;
 
@@ -283,7 +371,7 @@ public class MidiPianoFragment extends Fragment {
         public boolean onTouchEvent(MotionEvent event) {
             super.onTouchEvent(event);
             performClick();
-            Log.d(TAG, String.format("onTouchEvent: %s %d", midiString(kMidiCode), event.getAction()));
+            Log.d(TAG, String.format("onTouchEvent: %s %d", pitchNameString(kMidiCode), event.getAction()));
             switch (event.getAction()) {
                 default:
                     return false;
