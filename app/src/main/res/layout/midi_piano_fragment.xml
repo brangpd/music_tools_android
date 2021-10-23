@@ -26,21 +26,17 @@
 
         </LinearLayout>
 
-        <HorizontalScrollView
-            android:id="@+id/scrollViewMidiKeyboard"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:scrollbarStyle="outsideOverlay">
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/constraintLayoutMidiKeyboard"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"/>
-        </HorizontalScrollView>
+        <include
+            android:id="@+id/layoutMidiPianoKeyboards"
+            layout="@layout/midi_piano_keyboards"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
         <include
             android:id="@+id/layoutMidiPianoQuickSettings"
-            layout="@layout/midi_piano_quick_settings" />
+            layout="@layout/midi_piano_quick_settings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
     </LinearLayout>
 

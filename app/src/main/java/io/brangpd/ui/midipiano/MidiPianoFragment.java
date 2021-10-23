@@ -1,6 +1,5 @@
 package io.brangpd.ui.midipiano;
 
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.content.Context;
@@ -21,6 +20,9 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.HorizontalScrollView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.Space;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -44,7 +46,6 @@ public class MidiPianoFragment extends Fragment {
     private int mWhiteKeyHeight = 450;
     private TextView mTextViewMidiNote;
     private Spinner mSpinnerMidiKeySize;
-    private ConstraintLayout mConstraintLayoutMidiKeyboard;
     private MidiPianoFragmentBinding mBinding;
     private Spinner mSpinnerMidiKeyTransposition;
     private static final int kMinDelta = -11;
@@ -68,8 +69,7 @@ public class MidiPianoFragment extends Fragment {
         mViewModel = new ViewModelProvider(this).get(MidiPianoViewModel.class);
         View view = inflater.inflate(R.layout.midi_piano_fragment, container, false);
         mBinding = MidiPianoFragmentBinding.bind(view);
-        mConstraintLayoutMidiKeyboard = mBinding.constraintLayoutMidiKeyboard;
-        mConstraintLayoutMidiKeyboard.requestDisallowInterceptTouchEvent(true);
+        LinearLayout linearLayoutScrollViewMidiKeyboards = mBinding.layoutMidiPianoKeyboards.linearLayoutScrollViewMidiKeyboards;
         mTextViewMidiNote = mBinding.textViewMidiNote;
         mSpinnerMidiKeySize = mBinding.layoutMidiPianoQuickSettings.spinnerMidiKeySize;
         mSpinnerMidiKeyTransposition = mBinding.layoutMidiPianoQuickSettings.spinnerMidiKeyTransposition;
@@ -125,7 +125,7 @@ public class MidiPianoFragment extends Fragment {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 mWhiteKeyWidth = Integer.parseInt(adapterView.getSelectedItem().toString());
-                buildKeys();
+                buildKeys(linearLayoutScrollViewMidiKeyboards);
             }
 
             @Override
@@ -133,7 +133,7 @@ public class MidiPianoFragment extends Fragment {
             }
         });
 
-        buildKeys();
+        buildKeys(linearLayoutScrollViewMidiKeyboards);
 
         return view;
     }
@@ -158,115 +158,114 @@ public class MidiPianoFragment extends Fragment {
         }
     }
 
-    private void buildKeys() {
-        mConstraintLayoutMidiKeyboard.removeAllViews();
-        ConstraintLayout.LayoutParams params;
+    private void buildKeys(LinearLayout linearLayout) {
+        for (int childIndex = 0; childIndex < linearLayout.getChildCount(); ++childIndex) {
+            HorizontalScrollView scrollView = (HorizontalScrollView) linearLayout.getChildAt(childIndex);
+            RelativeLayout relativeLayout = (RelativeLayout) scrollView.getChildAt(0);
+            relativeLayout.removeAllViews();
+            RelativeLayout.LayoutParams params;
 
-        // 底部添加一点空隙方便拖拽
-        Space space = new Space(getContext());
-        params = new ConstraintLayout.LayoutParams(52 * mWhiteKeyWidth, mWhiteKeyHeight + 100);
-        params.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
-        params.leftToLeft = ConstraintLayout.LayoutParams.PARENT_ID;
-        params.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
-        space.setLayoutParams(params);
-        mConstraintLayoutMidiKeyboard.addView(space);
+            // 底部添加一点空隙方便拖拽
+            Space space = new Space(getContext());
+            params = new RelativeLayout.LayoutParams(52 * mWhiteKeyWidth, mWhiteKeyHeight + 100);
+            params.topMargin = 0;
+            params.leftMargin = 0;
+            space.setLayoutParams(params);
+            relativeLayout.addView(space);
 
-        OnMidiKeyboardListener onMidiKeyboardListener = new OnMidiKeyboardListener() {
-            @Override
-            public void onTouch(int midiCode, int velocity) {
-                int delta = Objects.requireNonNull(mViewModel.getTransposition().getValue());
-                midiCode += delta;
-                Log.d(TAG, String.format("onCreateView Touch: %d %d", midiCode, velocity));
-                mTextViewMidiNote.setText(pitchNameString(midiCode));
-                // Construct a note ON message for the middle C at maximum velocity on channel 1:
-                byte[] event = new byte[3];
-                event[0] = (byte) 0x90;  // 0x90 = note On, 0x00 = channel 1
-                event[1] = (byte) midiCode;  // 0x3C = middle C
-                event[2] = (byte) velocity;  // 0x7F = the maximum velocity (127)
+            OnMidiKeyboardListener onMidiKeyboardListener = new OnMidiKeyboardListener() {
+                @Override
+                public void onTouch(int midiCode, int velocity) {
+                    int delta = Objects.requireNonNull(mViewModel.getTransposition().getValue());
+                    midiCode += delta;
+                    Log.d(TAG, String.format("onCreateView Touch: %d %d", midiCode, velocity));
+                    mTextViewMidiNote.setText(pitchNameString(midiCode));
+                    // Construct a note ON message for the middle C at maximum velocity on channel 1:
+                    byte[] event = new byte[3];
+                    event[0] = (byte) 0x90;  // 0x90 = note On, 0x00 = channel 1
+                    event[1] = (byte) midiCode;  // 0x3C = middle C
+                    event[2] = (byte) velocity;  // 0x7F = the maximum velocity (127)
 
-                // Send the MIDI event to the synthesizer.
-                MidiDriver.getInstance().write(event);
-            }
-
-            @Override
-            public void onRelease(int midiCode, int velocity) {
-                int delta = Objects.requireNonNull(mViewModel.getTransposition().getValue());
-                midiCode += delta;
-                Log.d(TAG, String.format("onCreateView Release: %d", midiCode));
-                // Construct a note OFF message for the middle C at minimum velocity on channel 1:
-                byte[] event = new byte[3];
-                event[0] = (byte) 0x80;  // 0x80 = note Off, 0x00 = channel 1
-                event[1] = (byte) midiCode;  // 0x3C = middle C
-                event[2] = (byte) velocity;  // 0x00 = the minimum velocity (0)
-
-                // Send the MIDI event to the synthesizer.
-                MidiDriver.getInstance().write(event);
-            }
-        };
-        // 钢琴第一个键A0，左边省去20个MIDI键，即12个白键
-        int leftMarginOffset = -12 * mWhiteKeyWidth;
-        L_octave_loop:
-        for (int octave = 0; ; ++octave) {
-            for (int i = 0; i < 12; ++i) {
-                int midiCode = octave * 12 + i;
-                if (midiCode < 21 /*A0*/) {
-                    continue;
+                    // Send the MIDI event to the synthesizer.
+                    MidiDriver.getInstance().write(event);
                 }
-                if (midiCode > 108 /*C8*/) {
-                    break L_octave_loop;
-                }
-                MidiKeyboardButton midiKeyboardButton = new MidiKeyboardButton(
-                        new ContextThemeWrapper(
-                                getContext(), R.style.Widget_MaterialComponents_Button_OutlinedButton),
-                        midiCode);
-                midiKeyboardButton.setOnMidiKeyboardListener(onMidiKeyboardListener);
-                if (isBlackKey(midiCode)) {
-                    // 放置黑键
-                    midiKeyboardButton.setStrokeColor(ColorStateList.valueOf(Color.BLACK));
-                    params = new ConstraintLayout.LayoutParams(
-                            blackKeyWidth(mWhiteKeyWidth), blackKeyHeight(mWhiteKeyHeight));
-                    params.topMargin = 0;
 
-                    // 算当前黑键在当前八度内的位置：前2个黑键和前3个白键分5格，后3个黑键和后4个白键分7格
-                    if (midiCode == 22 /*A#0*/) {
-                        // 最左边一个黑键，为了美观居中，直接跟两个白键平分
-                        params.leftMargin = (int) Math.ceil(mWhiteKeyWidth * 2 / 3.0);
-                    } else {
-                        double localBlackLeftOffset;
-                        if (i <= 3) {
-                            localBlackLeftOffset = mWhiteKeyWidth * 3 * i / 5.0;
+                @Override
+                public void onRelease(int midiCode, int velocity) {
+                    int delta = Objects.requireNonNull(mViewModel.getTransposition().getValue());
+                    midiCode += delta;
+                    Log.d(TAG, String.format("onCreateView Release: %d", midiCode));
+                    // Construct a note OFF message for the middle C at minimum velocity on channel 1:
+                    byte[] event = new byte[3];
+                    event[0] = (byte) 0x80;  // 0x80 = note Off, 0x00 = channel 1
+                    event[1] = (byte) midiCode;  // 0x3C = middle C
+                    event[2] = (byte) velocity;  // 0x00 = the minimum velocity (0)
+
+                    // Send the MIDI event to the synthesizer.
+                    MidiDriver.getInstance().write(event);
+                }
+            };
+            // 钢琴第一个键A0，左边省去20个MIDI键，即12个白键
+            int leftMarginOffset = -12 * mWhiteKeyWidth;
+            L_octave_loop:
+            for (int octave = 0; ; ++octave) {
+                for (int i = 0; i < 12; ++i) {
+                    int midiCode = octave * 12 + i;
+                    if (midiCode < 21 /*A0*/) {
+                        continue;
+                    }
+                    if (midiCode > 108 /*C8*/) {
+                        break L_octave_loop;
+                    }
+                    MidiKeyboardButton midiKeyboardButton = new MidiKeyboardButton(
+                            new ContextThemeWrapper(
+                                    getContext(), R.style.Widget_MaterialComponents_Button_OutlinedButton),
+                            midiCode);
+                    midiKeyboardButton.setOnMidiKeyboardListener(onMidiKeyboardListener);
+                    if (isBlackKey(midiCode)) {
+                        // 放置黑键
+                        midiKeyboardButton.setStrokeColor(ColorStateList.valueOf(Color.BLACK));
+                        params = new RelativeLayout.LayoutParams(
+                                blackKeyWidth(mWhiteKeyWidth), blackKeyHeight(mWhiteKeyHeight));
+                        params.topMargin = 0;
+
+                        // 算当前黑键在当前八度内的位置：前2个黑键和前3个白键分5格，后3个黑键和后4个白键分7格
+                        if (midiCode == 22 /*A#0*/) {
+                            // 最左边一个黑键，为了美观居中，直接跟两个白键平分
+                            params.leftMargin = (int) Math.ceil(mWhiteKeyWidth * 2 / 3.0);
                         } else {
-                            localBlackLeftOffset = mWhiteKeyWidth * 3 + mWhiteKeyWidth * 4 * (i - 5) / 7.0;
+                            double localBlackLeftOffset;
+                            if (i <= 3) {
+                                localBlackLeftOffset = mWhiteKeyWidth * 3 * i / 5.0;
+                            } else {
+                                localBlackLeftOffset = mWhiteKeyWidth * 3 + mWhiteKeyWidth * 4 * (i - 5) / 7.0;
+                            }
+                            params.leftMargin = leftMarginOffset + octave * 7 * mWhiteKeyWidth + (int) Math.round(localBlackLeftOffset);
                         }
-                        params.leftMargin = leftMarginOffset + octave * 7 * mWhiteKeyWidth + (int) Math.round(localBlackLeftOffset);
+
+                        Log.d(TAG, String.format("Black key %d left margin: %d", midiCode, params.leftMargin));
+
+                        midiKeyboardButton.setLayoutParams(params);
+                    } else {
+                        // 放置白键
+                        midiKeyboardButton.setStrokeColor(ColorStateList.valueOf(Color.BLACK));
+
+                        params = new RelativeLayout.LayoutParams(mWhiteKeyWidth, mWhiteKeyHeight);
+                        params.topMargin = 0;
+
+                        // 算当前八度内白键为第几个
+                        int localWhiteIndex = i / 2;
+                        if (i >= 5) {
+                            ++localWhiteIndex;
+                        }
+
+                        params.leftMargin = leftMarginOffset + octave * 7 * mWhiteKeyWidth + localWhiteIndex * mWhiteKeyWidth;
+                        Log.d(TAG, String.format("White key %d left margin: %d", midiCode, params.leftMargin));
+
+                        midiKeyboardButton.setLayoutParams(params);
                     }
-
-                    Log.d(TAG, String.format("Black key %d left margin: %d", midiCode, params.leftMargin));
-                    params.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
-                    params.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
-
-                    midiKeyboardButton.setLayoutParams(params);
-                } else {
-                    // 放置白键
-                    midiKeyboardButton.setStrokeColor(ColorStateList.valueOf(Color.BLACK));
-
-                    params = new ConstraintLayout.LayoutParams(mWhiteKeyWidth, mWhiteKeyHeight);
-                    params.topMargin = 0;
-
-                    // 算当前八度内白键为第几个
-                    int localWhiteIndex = i / 2;
-                    if (i >= 5) {
-                        ++localWhiteIndex;
-                    }
-
-                    params.leftMargin = leftMarginOffset + octave * 7 * mWhiteKeyWidth + localWhiteIndex * mWhiteKeyWidth;
-                    Log.d(TAG, String.format("White key %d left margin: %d", midiCode, params.leftMargin));
-                    params.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
-                    params.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
-
-                    midiKeyboardButton.setLayoutParams(params);
+                    relativeLayout.addView(midiKeyboardButton);
                 }
-                mConstraintLayoutMidiKeyboard.addView(midiKeyboardButton);
             }
         }
     }
