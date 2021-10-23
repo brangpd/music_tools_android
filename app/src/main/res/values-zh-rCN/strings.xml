@@ -10,4 +10,7 @@
     <string name="menu_midi_keyboard">MIDI 键盘</string>
     <string name="text_view_key_width_text">键宽：</string>
     <string name="text_view_transposition_text">移调：</string>
+    <string name="midi_program_0">钢琴</string>
+    <string name="midi_program_24">吉他</string>
+    <string name="text_view_midi_program">音色：</string>
 </resources>

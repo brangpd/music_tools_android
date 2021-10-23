@@ -32,6 +32,7 @@ import com.google.android.material.button.MaterialButton;
 import org.billthefarmer.mididriver.MidiDriver;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Vector;
 
@@ -50,6 +51,9 @@ public class MidiPianoFragment extends Fragment {
     private Spinner mSpinnerMidiKeyTransposition;
     private static final int kMinDelta = -11;
     private static final int kMaxDelta = 11;
+    private byte[] mMidiMessageBuf3 = new byte[3];
+    private byte[] mMidiMessageBuf2 = new byte[2];
+    private MidiProgram[] mMidiPrograms;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -73,21 +77,52 @@ public class MidiPianoFragment extends Fragment {
         mTextViewMidiNote = mBinding.textViewMidiNote;
         mSpinnerMidiKeySize = mBinding.layoutMidiPianoQuickSettings.spinnerMidiKeySize;
         mSpinnerMidiKeyTransposition = mBinding.layoutMidiPianoQuickSettings.spinnerMidiKeyTransposition;
+        Spinner spinnerMidiProgram = mBinding.layoutMidiPianoQuickSettings.spinnerMidiProgram;
         Button buttonMidiKeyTranspositionPlus = mBinding.layoutMidiPianoQuickSettings.buttonMidiKeyTranspositionPlus;
         Button buttonMidiKeyTranspositionMinus = mBinding.layoutMidiPianoQuickSettings.buttonMidiKeyTranspositionMinus;
         Button buttonMidiKeyTranspositionZero = mBinding.layoutMidiPianoQuickSettings.buttonMidiKeyTranspositionZero;
 
+        // MIDI 乐器选择部分UI
+        mMidiPrograms = new MidiProgram[]{
+                new MidiProgram(0, R.string.midi_program_0),
+                new MidiProgram(24, R.string.midi_program_24),
+        };
+        ArrayAdapter<MidiProgram> midiProgramArrayAdapter = new ArrayAdapter<>(
+                getContext(),
+                android.R.layout.simple_spinner_dropdown_item,
+                mMidiPrograms
+        );
+        spinnerMidiProgram.setAdapter(midiProgramArrayAdapter);
+        spinnerMidiProgram.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                Object selectedItem = adapterView.getSelectedItem();
+                if (selectedItem instanceof MidiProgram) {
+                    MidiProgram program = ((MidiProgram) selectedItem);
+                    int number = program.getNumber();
+                    midiProgramChange(number);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+            }
+        });
+
+
         // 移调部分UI及行为
         // 移调列表
-        ArrayAdapter<MidiKeyTransposition> adapter = new ArrayAdapter<>(
+        Vector<MidiKeyTransposition> midiKeyTranspositions = new Vector<MidiKeyTransposition>() {{
+            for (int i = kMinDelta; i <= kMaxDelta; ++i) {
+                add(new MidiKeyTransposition(i));
+            }
+        }};
+        ArrayAdapter<MidiKeyTransposition> midiKeyTranspositionArrayAdapter = new ArrayAdapter<>(
                 getContext(),
                 android.R.layout.simple_spinner_item,
-                new Vector<MidiKeyTransposition>() {{
-                    for (int i = kMinDelta; i <= kMaxDelta; ++i) {
-                        add(new MidiKeyTransposition(i));
-                    }
-                }});
-        mSpinnerMidiKeyTransposition.setAdapter(adapter);
+                midiKeyTranspositions
+        );
+        mSpinnerMidiKeyTransposition.setAdapter(midiKeyTranspositionArrayAdapter);
         mSpinnerMidiKeyTransposition.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
@@ -119,6 +154,7 @@ public class MidiPianoFragment extends Fragment {
             int index = integer - kMinDelta;
             mSpinnerMidiKeyTransposition.setSelection(index);
         });
+
         // 一开始列表会显示为第一个加入的项（-11），手动调用一次设置
         mViewModel.setTransposition(Objects.requireNonNull(mViewModel.getTransposition().getValue()));
         mSpinnerMidiKeySize.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -158,6 +194,56 @@ public class MidiPianoFragment extends Fragment {
         }
     }
 
+    private class MidiProgram {
+        private final int kNumber;
+        private final String kName;
+
+        private MidiProgram(int n, String name) {
+            kNumber = n;
+            kName = name;
+        }
+
+        private MidiProgram(int n, int stringId) {
+            kNumber = n;
+            kName = MidiPianoFragment.this.getResources().getString(stringId);
+        }
+
+        public int getNumber() {
+            return kNumber;
+        }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return kName;
+        }
+    }
+
+    private void midiNoteOn(int note, int velocity) {
+        MidiDriver.getInstance().write(midiMessage(0x90, note, velocity));
+    }
+
+    private void midiNoteOff(int note, int velocity) {
+        MidiDriver.getInstance().write(midiMessage(0x80, note, velocity));
+    }
+
+    private void midiProgramChange(int program) {
+        MidiDriver.getInstance().write(midiMessage(0xC0, program));
+    }
+
+    private byte[] midiMessage(int status, int data) {
+        mMidiMessageBuf2[0] = (byte) status;
+        mMidiMessageBuf2[1] = (byte) data;
+        return mMidiMessageBuf2;
+    }
+
+    private byte[] midiMessage(int status, int data1, int data2) {
+        mMidiMessageBuf3[0] = (byte) status;
+        mMidiMessageBuf3[1] = (byte) data1;
+        mMidiMessageBuf3[2] = (byte) data2;
+        return mMidiMessageBuf3;
+    }
+
     private void buildKeys(LinearLayout linearLayout) {
         for (int childIndex = 0; childIndex < linearLayout.getChildCount(); ++childIndex) {
             HorizontalScrollView scrollView = (HorizontalScrollView) linearLayout.getChildAt(childIndex);
@@ -180,14 +266,7 @@ public class MidiPianoFragment extends Fragment {
                     midiCode += delta;
                     Log.d(TAG, String.format("onCreateView Touch: %d %d", midiCode, velocity));
                     mTextViewMidiNote.setText(pitchNameString(midiCode));
-                    // Construct a note ON message for the middle C at maximum velocity on channel 1:
-                    byte[] event = new byte[3];
-                    event[0] = (byte) 0x90;  // 0x90 = note On, 0x00 = channel 1
-                    event[1] = (byte) midiCode;  // 0x3C = middle C
-                    event[2] = (byte) velocity;  // 0x7F = the maximum velocity (127)
-
-                    // Send the MIDI event to the synthesizer.
-                    MidiDriver.getInstance().write(event);
+                    midiNoteOn(midiCode, velocity);
                 }
 
                 @Override
@@ -195,14 +274,7 @@ public class MidiPianoFragment extends Fragment {
                     int delta = Objects.requireNonNull(mViewModel.getTransposition().getValue());
                     midiCode += delta;
                     Log.d(TAG, String.format("onCreateView Release: %d", midiCode));
-                    // Construct a note OFF message for the middle C at minimum velocity on channel 1:
-                    byte[] event = new byte[3];
-                    event[0] = (byte) 0x80;  // 0x80 = note Off, 0x00 = channel 1
-                    event[1] = (byte) midiCode;  // 0x3C = middle C
-                    event[2] = (byte) velocity;  // 0x00 = the minimum velocity (0)
-
-                    // Send the MIDI event to the synthesizer.
-                    MidiDriver.getInstance().write(event);
+                    midiNoteOff(midiCode, velocity);
                 }
             };
             // 钢琴第一个键A0，左边省去20个MIDI键，即12个白键

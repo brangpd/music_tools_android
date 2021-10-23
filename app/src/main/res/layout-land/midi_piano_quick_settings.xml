@@ -51,4 +51,15 @@
         android:text="@string/button_midi_key_transposition_plus"
         tools:ignore="TouchTargetSizeCheck" />
 
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/text_view_midi_program" />
+
+    <Spinner
+        android:id="@+id/spinnerMidiProgram"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp" />
 </LinearLayout>

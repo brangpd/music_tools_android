@@ -22,4 +22,7 @@
     <string name="button_midi_key_transposition_plus" translatable="false">+</string>
     <string name="button_midi_key_transposition_minus" translatable="false">-</string>
     <string name="button_midi_key_transposition_zero" translatable="false">0</string>
+    <string name="midi_program_0">Piano</string>
+    <string name="midi_program_24">Guitar</string>
+    <string name="text_view_midi_program">Inst:</string>
 </resources>
