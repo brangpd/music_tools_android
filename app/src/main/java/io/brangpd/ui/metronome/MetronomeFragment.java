@@ -1,15 +1,7 @@
 package io.brangpd.ui.metronome;
 
-import androidx.lifecycle.ViewModelProvider;
-
-import android.content.Context;
 import android.media.MediaPlayer;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,10 +13,14 @@ import android.widget.PopupMenu;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -43,8 +39,8 @@ public class MetronomeFragment extends Fragment {
     private long mLastRecordedTimeMs;
     private long mLastRecordedStopMs;
     private long mRecordCount;
-    private boolean mIsPlaying = false;
     private Map<Integer, Integer> mSpeedToBpm;
+    private MediaPlayer mMediaPlayer;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -58,13 +54,35 @@ public class MetronomeFragment extends Fragment {
         Button buttonResetRecord = binding.buttonResetRecord;
         Button buttonChoosePreset = binding.buttonChoosePreset;
 
+        mMediaPlayer = MediaPlayer.create(getContext(), R.raw.metronome_high);
+
         mViewModel = new ViewModelProvider(this).get(MetronomeViewModel.class);
-        mViewModel.getBpm().observe(getViewLifecycleOwner(), integer -> {
+        mViewModel.getBpmData().observe(getViewLifecycleOwner(), integer -> {
             String bpmStr = integer.toString();
             editTextNumberBpm.setText(bpmStr);
             seekBarBpm.setProgress(bpmToSeekBarProgress(integer));
-            if (mIsPlaying) {
+            if (mViewModel.isPlaying()) {
                 startPlayingTimer();
+            }
+        });
+        mViewModel.isPlayingData().observe(getViewLifecycleOwner(), isPlaying -> {
+            if (isPlaying) {
+                buttonPlay.setText(R.string.metronome_stop);
+                buttonRecord.setEnabled(false);
+                buttonResetRecord.setEnabled(false);
+                if (mPlayingTimer != null) {
+                    mPlayingTimer.cancel();
+                    mPlayingTimer = null;
+                }
+                startPlayingTimer();
+            } else {
+                buttonPlay.setText(R.string.metronome_play);
+                buttonRecord.setEnabled(true);
+                buttonResetRecord.setEnabled(true);
+                if (mPlayingTimer != null) {
+                    mPlayingTimer.cancel();
+                    mPlayingTimer = null;
+                }
             }
         });
 
@@ -101,34 +119,10 @@ public class MetronomeFragment extends Fragment {
             }
         });
 
-        buttonPlay.setOnClickListener(view -> {
-            if (!mIsPlaying) {
-                buttonPlay.setText(R.string.metronome_stop);
-                buttonRecord.setEnabled(false);
-                buttonResetRecord.setEnabled(false);
-                mIsPlaying = true;
-                if (mPlayingTimer != null) {
-                    mPlayingTimer.cancel();
-                    mPlayingTimer = null;
-                }
-                Integer bpm = mViewModel.getBpm().getValue();
-                if (bpm != null && bpm != 0) {
-                    startPlayingTimer();
-                }
-            } else {
-                buttonPlay.setText(R.string.metronome_play);
-                buttonRecord.setEnabled(true);
-                buttonResetRecord.setEnabled(true);
-                mIsPlaying = false;
-                if (mPlayingTimer != null) {
-                    mPlayingTimer.cancel();
-                    mPlayingTimer = null;
-                }
-            }
-        });
+        buttonPlay.setOnClickListener(view -> mViewModel.setPlaying(!mViewModel.isPlaying()));
 
         buttonRecord.setOnClickListener(view -> {
-            playSound(getContext());
+            playSound();
             long nowMs = Calendar.getInstance().getTime().getTime();
             long stopMs = nowMs - mLastRecordedTimeMs;
             mLastRecordedTimeMs = nowMs;
@@ -193,18 +187,25 @@ public class MetronomeFragment extends Fragment {
             mPlayingTimer.cancel();
         }
         mPlayingTimer = new Timer();
+        startSchedule();
+    }
+
+    private void startSchedule() {
+        long mspb = bpmToMspb(mViewModel.getBpm());
+        playSound();
+        mPlayingTimer = new Timer(true);
         TimerTask timerTask = new TimerTask() {
             @Override
             public void run() {
-                String time = Calendar.getInstance().getTime().toString();
-                Log.d(TAG, String.format("run: Tick %s", time));
-                playSound(getContext());
+                if (mViewModel.isPlaying()) {
+                    startSchedule();
+                } else {
+                    mPlayingTimer = null;
+                }
             }
         };
-        int bpm = Objects.requireNonNull(mViewModel.getBpm().getValue());
-        long mspb = bpmToMspb(bpm);
+        mPlayingTimer.schedule(timerTask, mspb);
         Log.d(TAG, String.format("onCreateView: Start Playing at interval %d ms", mspb));
-        mPlayingTimer.schedule(timerTask, 0, mspb);
     }
 
     private static int seekBarProgressToBpm(int i) {
@@ -231,9 +232,7 @@ public class MetronomeFragment extends Fragment {
         return (int) (60 * 1000 / (float) v);
     }
 
-    private static void playSound(Context context) {
-        MediaPlayer player = MediaPlayer.create(context, R.raw.metronome_high);
-        player.start();
-        player.setOnCompletionListener(MediaPlayer::release);
+    private void playSound() {
+        mMediaPlayer.start();
     }
 }
