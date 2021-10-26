@@ -25,4 +25,26 @@
     <string name="midi_program_0">Piano</string>
     <string name="midi_program_24">Guitar</string>
     <string name="text_view_midi_program">Inst:</string>
+    <string name="metronome_choose_preset">Preset</string>
+    <string name="speed_larghissimo">Larghissimo</string>
+    <string name="speed_largo" >Largo</string>
+    <string name="speed_grave" >Grave</string>
+    <string name="speed_adagio" >Adagio</string>
+    <string name="speed_adagietto" >Adagietto</string>
+    <string name="speed_larghetto" >Larghetto</string>
+    <string name="speed_andante" >Andante</string>
+    <string name="speed_adagissimo" >Adagissimo</string>
+    <string name="speed_lento" >Lento</string>
+    <string name="speed_andantino" >Andantino</string>
+    <string name="speed_marcia_moderato" >Marcia Moderato</string>
+    <string name="speed_moderato" >Moderato</string>
+    <string name="speed_andante_moderato" >Andante Moderato</string>
+    <string name="speed_allegretto" >Allegretto</string>
+    <string name="speed_allegro_moderato" >Allegro Moderato</string>
+    <string name="speed_allegro" >Allegro</string>
+    <string name="speed_vivace" >Vivace</string>
+    <string name="speed_vivacissimo" >Vivacissimo</string>
+    <string name="speed_allegrissimo" >Allegrissimo</string>
+    <string name="speed_presto" >Presto</string>
+    <string name="speed_prestissimo" >Prestissimo</string>
 </resources>

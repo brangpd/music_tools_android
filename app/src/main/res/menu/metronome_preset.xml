@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/metronome_preset_larghissimo"
+        android:title="@string/speed_larghissimo" />
+    <item
+        android:id="@+id/metronome_preset_adagissimo"
+        android:title="@string/speed_adagissimo" />
+    <item
+        android:id="@+id/metronome_preset_grave"
+        android:title="@string/speed_grave" />
+    <item
+        android:id="@+id/metronome_preset_largo"
+        android:title="@string/speed_largo" />
+    <item
+        android:id="@+id/metronome_preset_lento"
+        android:title="@string/speed_lento" />
+    <item
+        android:id="@+id/metronome_preset_larghetto"
+        android:title="@string/speed_larghetto" />
+    <item
+        android:id="@+id/metronome_preset_adagio"
+        android:title="@string/speed_adagio" />
+    <item
+        android:id="@+id/metronome_preset_adagietto"
+        android:title="@string/speed_adagietto" />
+    <item
+        android:id="@+id/metronome_preset_andante"
+        android:title="@string/speed_andante" />
+    <item
+        android:id="@+id/metronome_preset_andantino"
+        android:title="@string/speed_andantino" />
+    <!--<item
+            android:id="@+id/metronome_preset_marcia_moderato"
+            android:title="@string/speed_marcia_moderato" />-->
+    <item
+        android:id="@+id/metronome_preset_moderato"
+        android:title="@string/speed_moderato" />
+    <!--<item
+        android:id="@+id/metronome_preset_andante_moderato"
+        android:title="@string/speed_andante_moderato" />-->
+    <item
+        android:id="@+id/metronome_preset_allegretto"
+        android:title="@string/speed_allegretto" />
+    <!--<item
+        android:id="@+id/metronome_preset_allegro_moderato"
+        android:title="@string/speed_allegro_moderato" />-->
+    <item
+        android:id="@+id/metronome_preset_allegro"
+        android:title="@string/speed_allegro" />
+    <item
+        android:id="@+id/metronome_preset_vivace"
+        android:title="@string/speed_vivace" />
+    <item
+        android:id="@+id/metronome_preset_vivacissimo"
+        android:title="@string/speed_vivacissimo" />
+    <item
+        android:id="@+id/metronome_preset_allegrissimo"
+        android:title="@string/speed_allegrissimo" />
+    <item
+        android:id="@+id/metronome_preset_presto"
+        android:title="@string/speed_presto" />
+    <item
+        android:id="@+id/metronome_preset_prestissimo"
+        android:title="@string/speed_prestissimo" />
+</menu>

@@ -50,13 +50,22 @@
                 app:layout_constraintTop_toBottomOf="@id/seekBarBpm" />
 
             <Button
+                android:id="@+id/buttonChoosePreset"
+                android:layout_width="@dimen/metronome_button_width"
+                android:layout_height="wrap_content"
+                android:text="@string/metronome_choose_preset"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/buttonPlay" />
+
+            <Button
                 android:id="@+id/buttonRecord"
                 android:layout_width="@dimen/metronome_button_width"
                 android:layout_height="wrap_content"
                 android:text="@string/metronome_record"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/buttonPlay" />
+                app:layout_constraintTop_toBottomOf="@+id/buttonChoosePreset" />
 
             <Button
                 android:id="@+id/buttonResetRecord"

@@ -16,9 +16,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.PopupMenu;
 import android.widget.SeekBar;
+import android.widget.Toast;
 
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -39,6 +43,7 @@ public class MetronomeFragment extends Fragment {
     private long mLastRecordedStopMs;
     private long mRecordCount;
     private boolean mIsPlaying = false;
+    private Map<Integer, Integer> mSpeedToBpm;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -50,6 +55,7 @@ public class MetronomeFragment extends Fragment {
         Button buttonPlay = binding.buttonPlay;
         Button buttonRecord = binding.buttonRecord;
         Button buttonResetRecord = binding.buttonResetRecord;
+        Button buttonChoosePreset = binding.buttonChoosePreset;
 
         mViewModel = new ViewModelProvider(this).get(MetronomeViewModel.class);
         mViewModel.getBpm().observe(getViewLifecycleOwner(), integer -> {
@@ -131,6 +137,42 @@ public class MetronomeFragment extends Fragment {
             mRecordCount = 0;
             mLastRecordedStopMs = 0;
             mLastRecordedTimeMs = 0;
+        });
+
+        // 速度预设值
+        HashMap<Integer, Integer> speedToBpm = new HashMap<>();
+        mSpeedToBpm = speedToBpm;
+        speedToBpm.put(R.id.metronome_preset_larghissimo, 20);
+        speedToBpm.put(R.id.metronome_preset_adagissimo, 30);
+        speedToBpm.put(R.id.metronome_preset_grave, 35);
+        speedToBpm.put(R.id.metronome_preset_largo, 50);
+        speedToBpm.put(R.id.metronome_preset_lento, 55);
+        speedToBpm.put(R.id.metronome_preset_larghetto, 60);
+        speedToBpm.put(R.id.metronome_preset_adagio, 70);
+        speedToBpm.put(R.id.metronome_preset_adagietto, 75);
+        speedToBpm.put(R.id.metronome_preset_andante, 90);
+        speedToBpm.put(R.id.metronome_preset_andantino, 95);
+        speedToBpm.put(R.id.metronome_preset_moderato, 100);
+        speedToBpm.put(R.id.metronome_preset_allegretto, 110);
+        speedToBpm.put(R.id.metronome_preset_allegro, 140);
+        speedToBpm.put(R.id.metronome_preset_vivace, 160);
+        speedToBpm.put(R.id.metronome_preset_vivacissimo, 175);
+        speedToBpm.put(R.id.metronome_preset_allegrissimo, 175);
+        speedToBpm.put(R.id.metronome_preset_presto, 185);
+        speedToBpm.put(R.id.metronome_preset_prestissimo, 205);
+        buttonChoosePreset.setOnClickListener(view -> {
+            PopupMenu popupMenu = new PopupMenu(getContext(), view);
+            popupMenu.setOnMenuItemClickListener(menuItem -> {
+                Integer bpm = mSpeedToBpm.get(menuItem.getItemId());
+                if (bpm != null) {
+                    Toast.makeText(getContext(), menuItem.getTitle(), Toast.LENGTH_SHORT).show();
+                    mViewModel.setBpm(bpm);
+                    return true;
+                }
+                return false;
+            });
+            popupMenu.inflate(R.menu.metronome_preset);
+            popupMenu.show();
         });
 
         return binding.getRoot();

@@ -13,4 +13,26 @@
     <string name="midi_program_0">钢琴</string>
     <string name="midi_program_24">吉他</string>
     <string name="text_view_midi_program">音色：</string>
+    <string name="metronome_choose_preset">预设</string>
+    <string name="speed_larghissimo">极慢板 Larghissimo</string>
+    <string name="speed_largo" >广板 Largo</string>
+    <string name="speed_grave" >庄严的慢板 Grave</string>
+    <string name="speed_adagio" >柔板 Adagio</string>
+    <string name="speed_adagietto" >小柔板 Adagietto</string>
+    <string name="speed_larghetto" >小广板 Larghetto</string>
+    <string name="speed_andante" >行板 Andante</string>
+    <string name="speed_adagissimo" >极慢的柔板 Adagissimo</string>
+    <string name="speed_lento" >慢板 Lento</string>
+    <string name="speed_andantino">小行板 Andantino</string>
+    <string name="speed_moderato">中板 Moderato</string>
+    <string name="speed_allegretto">稍快板 Allegretto</string>
+    <string name="speed_allegro">快板 Allegro</string>
+    <string name="speed_presto">急板 Presto</string>
+    <string name="speed_prestissimo">最急板 Prestissimo</string>
+    <string name="speed_vivace">活泼的快板 Vivace</string>
+    <string name="speed_vivacissimo">甚快板 Vivacissimo</string>
+    <string name="speed_allegrissimo">极快的快板 Allegrissimo</string>
+    <string name="speed_allegro_moderato">中速的快板 Allegro Moderato</string>
+    <string name="speed_andante_moderato">中速的行板 Andante Moderato</string>
+    <string name="speed_marcia_moderato">行进的中板 Marcia Moderato</string>
 </resources>
