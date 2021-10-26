@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.PopupMenu;
@@ -34,10 +35,10 @@ public class MetronomeFragment extends Fragment {
     private static final String TAG = MetronomeFragment.class.getName();
 
     private MetronomeViewModel mViewModel;
-    private static final int kMinBpm = 20;
+    public static final int kMinBpm = 20;
     private static final long kMaxRecordStopMs = bpmToMspb(kMinBpm);
-    private static final int kMaxBpm = 300;
-    private static final int kInitBpm = 60;
+    public static final int kMaxBpm = 300;
+    public static final int kInitBpm = 60;
     private Timer mPlayingTimer = null;
     private long mLastRecordedTimeMs;
     private long mLastRecordedStopMs;
@@ -66,7 +67,16 @@ public class MetronomeFragment extends Fragment {
                 startPlayingTimer();
             }
         });
+
+        // BPM 编辑区域
         editTextNumberBpm.setText(String.valueOf(kInitBpm));
+        editTextNumberBpm.setOnEditorActionListener((textView, i, keyEvent) -> {
+            if (i == EditorInfo.IME_ACTION_DONE) {
+                mViewModel.setBpm(Integer.parseInt(textView.getText().toString()));
+                return true;
+            }
+            return false;
+        });
 
         seekBarBpm.setProgress(kInitBpm);
         seekBarBpm.setMax(bpmToSeekBarProgress(kMaxBpm));
