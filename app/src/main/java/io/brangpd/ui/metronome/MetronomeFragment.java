@@ -1,5 +1,6 @@
 package io.brangpd.ui.metronome;
 
+import android.content.Context;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.util.Log;
@@ -28,19 +29,37 @@ import io.brangpd.R;
 import io.brangpd.databinding.MetronomeFragmentBinding;
 
 public class MetronomeFragment extends Fragment {
+    public static class MetronomeSoundPlayer extends MediaPlayer {
+        private static final int kBufSize = 10;
+        private final MediaPlayer[] mMediaPlayer = new MediaPlayer[kBufSize];
+        private int mIndex = 0;
+
+        MetronomeSoundPlayer(Context context) {
+            for (int i = 0; i < mMediaPlayer.length; i++) {
+                mMediaPlayer[i] = MediaPlayer.create(context, R.raw.metronome_high);
+            }
+        }
+
+        @Override
+        public void start() throws IllegalStateException {
+            mMediaPlayer[mIndex].start();
+            mIndex = (mIndex + 1) % kBufSize;
+        }
+    }
+
     private static final String TAG = MetronomeFragment.class.getName();
 
     private MetronomeViewModel mViewModel;
     public static final int kMinBpm = 20;
     private static final long kMaxRecordStopMs = bpmToMspb(kMinBpm);
-    public static final int kMaxBpm = 300;
+    public static final int kMaxBpm = 220;
     public static final int kInitBpm = 60;
     private Timer mPlayingTimer = null;
     private long mLastRecordedTimeMs;
     private long mLastRecordedStopMs;
     private long mRecordCount;
     private Map<Integer, Integer> mSpeedToBpm;
-    private MediaPlayer mMediaPlayer;
+    private MetronomeSoundPlayer mMediaPlayer;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -54,7 +73,7 @@ public class MetronomeFragment extends Fragment {
         Button buttonResetRecord = binding.buttonResetRecord;
         Button buttonChoosePreset = binding.buttonChoosePreset;
 
-        mMediaPlayer = MediaPlayer.create(getContext(), R.raw.metronome_high);
+        mMediaPlayer = new MetronomeSoundPlayer(getContext());
 
         mViewModel = new ViewModelProvider(this).get(MetronomeViewModel.class);
         mViewModel.getBpmData().observe(getViewLifecycleOwner(), integer -> {
