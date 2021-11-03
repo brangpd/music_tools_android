@@ -8,4 +8,4 @@ A simple metronome. Take the number of BPM and beat in that frequency.
 
 ## MIDI Keyboard
 
-A 88-keys midi piano keyboard.
+An 88-keys midi piano keyboard.
